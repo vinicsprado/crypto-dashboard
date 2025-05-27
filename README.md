@@ -1,17 +1,22 @@
 # 🪙 Crypto Dashboard
 
-Dashboard com IA, indicadores técnicos, candlestick, linha, backtesting e visualização de 2 moedas simultaneamente (Bitcoin e Ethereum).
+Dashboard gráfico em tempo real para análise de criptomoedas com IA, indicadores técnicos e backtesting.
 
 ## 🚀 Funcionalidades:
-- Grid com Bitcoin e Ethereum.
-- Períodos: 1 dia, 7 dias, 30 dias, 90 dias, 180 dias, 365 dias, 2 anos.
-- Gráficos de linha e candlestick.
-- Indicadores técnicos: SMA, EMA, RSI, MACD, Bandas de Bollinger.
+- Visualização de 2 moedas simultaneamente (Bitcoin e Ethereum).
+- Períodos configuráveis: 1 dia, 7 dias, 30 dias, 90 dias, 180 dias, 365 dias, 2 anos.
+- Gráficos de linha ou candlestick.
+- Indicadores técnicos:
+  - Média Móvel Simples (SMA)
+  - Média Móvel Exponencial (EMA)
+  - RSI
+  - MACD
+  - Bandas de Bollinger
 - Backtesting com relatório de desempenho.
+- 🚦 Recomendações de **COMPRA**, **VENDA** ou **MANTER**.
 
 ## 🔧 Como rodar localmente:
-1. Clone este repositório.
-2. Crie um arquivo `.env` com sua chave da API da CoinGecko.
-3. Instale dependências:
+1. Clone este repositório:
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/seu-usuario/crypto-dashboard.git
+cd crypto-dashboard
