@@ -107,6 +107,18 @@ def backtest_strategy(df):
     }
 
 
+# 🚦 Função para recomendação de compra, venda ou manter
+def get_signal(df):
+    if df.empty or 'SMA5' not in df.columns or 'SMA15' not in df.columns:
+        return 'Sem dados'
+    if df['SMA5'].iloc[-1] > df['SMA15'].iloc[-1]:
+        return 'COMPRA'
+    elif df['SMA5'].iloc[-1] < df['SMA15'].iloc[-1]:
+        return 'VENDA'
+    else:
+        return 'MANTER'
+
+
 # ======================= Layout ========================
 
 app.layout = html.Div([
@@ -196,8 +208,15 @@ def update_graph(coin1, period1, coin2, period2, chart_type, n):
     df1_bt, stats1 = backtest_strategy(df1)
     df2_bt, stats2 = backtest_strategy(df2)
 
+    signal1 = get_signal(df1_bt)
+    signal2 = get_signal(df2_bt)
+
     def build_figure(df, coin_name):
         fig = go.Figure()
+        if df.empty:
+            fig.update_layout(title=f'{coin_name} - Sem dados disponíveis')
+            return fig
+
         if chart_type == 'line':
             fig.add_trace(go.Scatter(x=df['Time'], y=df['Price'], name='Preço'))
             fig.add_trace(go.Scatter(x=df['Time'], y=df['Upper'], name='Bollinger Upper'))
@@ -218,9 +237,9 @@ def update_graph(coin1, period1, coin2, period2, chart_type, n):
     fig2 = build_figure(df2, coins[coin2])
 
     backtest_output = html.Div([
-        html.H3('Backtesting Resultado'),
-        html.P(f"{coins[coin1]} - Return: {stats1['Total Return']}%, Trades: {stats1['Trades']}, Wins: {stats1['Wins']}, Losses: {stats1['Losses']}"),
-        html.P(f"{coins[coin2]} - Return: {stats2['Total Return']}%, Trades: {stats2['Trades']}, Wins: {stats2['Wins']}, Losses: {stats2['Losses']}")
+        html.H3('📊 Backtesting Resultado'),
+        html.P(f"{coins[coin1]} - Return: {stats1['Total Return']}%, Trades: {stats1['Trades']}, Wins: {stats1['Wins']}, Losses: {stats1['Losses']}, 🚦 Recomendação: {signal1}"),
+        html.P(f"{coins[coin2]} - Return: {stats2['Total Return']}%, Trades: {stats2['Trades']}, Wins: {stats2['Wins']}, Losses: {stats2['Losses']}, 🚦 Recomendação: {signal2}")
     ])
 
     return fig1, fig2, backtest_output
