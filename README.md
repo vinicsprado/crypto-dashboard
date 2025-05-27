@@ -1,47 +1,17 @@
-# 🪙 Crypto Dashboard Pro
+# 🪙 Crypto Dashboard
 
-Dashboard em tempo real com IA, Candlestick, RSI, MACD, Bollinger e Backtesting.
+Dashboard com IA, indicadores técnicos, candlestick, linha, backtesting e visualização de 2 moedas simultaneamente (Bitcoin e Ethereum).
 
-## 🚀 Como rodar localmente
+## 🚀 Funcionalidades:
+- Grid com Bitcoin e Ethereum.
+- Períodos: 1 dia, 7 dias, 30 dias, 90 dias, 180 dias, 365 dias, 2 anos.
+- Gráficos de linha e candlestick.
+- Indicadores técnicos: SMA, EMA, RSI, MACD, Bandas de Bollinger.
+- Backtesting com relatório de desempenho.
 
-1. Clone este repositório:
-```bash
-git clone https://github.com/seu-usuario/crypto-dashboard-pro.git
-cd crypto-dashboard-pro
-```
-
-2. Crie um arquivo `.env` com sua chave de API:
-```
-COINGECKO_API_KEY=CG-rcWHrATZzuhrgSZjFo1o3bwS
-```
-
-3. Crie um ambiente virtual (opcional):
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate   # Windows
-```
-
-4. Instale as dependências:
+## 🔧 Como rodar localmente:
+1. Clone este repositório.
+2. Crie um arquivo `.env` com sua chave da API da CoinGecko.
+3. Instale dependências:
 ```bash
 pip install -r requirements.txt
-```
-
-5. Rode o app:
-```bash
-python app.py
-```
-
-Acesse em: http://localhost:8080
-
-## 🌐 Deploy na Render
-
-1. Crie um serviço Web no https://render.com
-2. Conecte seu GitHub
-3. Configure:
-   - Build Command: pip install -r requirements.txt
-   - Start Command: gunicorn app:server
-4. A Render criará uma URL pública.
-
-## 📄 Licença
-MIT
