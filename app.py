@@ -1,26 +1,24 @@
 import dash
 from dash import dcc, html
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output
 import plotly.graph_objs as go
 import pandas as pd
 import numpy as np
 import requests
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-API_KEY = os.getenv('CG-rcWHrATZzuhrgSZjFo1o3bwS')
+# 🔑 Chave da API da CoinGecko
+API_KEY = 'CG-rcWHrATZzuhrgSZjFo1o3bwS'
 
 app = dash.Dash(__name__)
 server = app.server
 
-# Configurações de moedas
+# 🎯 Configurações de moedas
 coins = {
     'bitcoin': 'Bitcoin',
     'ethereum': 'Ethereum'
 }
 
-# Configurações de períodos
+# 📆 Períodos possíveis
 period_options = {
     '1': '1 dia',
     '7': '7 dias',
@@ -31,29 +29,38 @@ period_options = {
     '730': '2 anos'
 }
 
-# ================== Funções ==================
 
+# 🔗 Função para buscar dados da API
 def fetch_data(coin_id, days):
     url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart"
-    params = {'vs_currency': 'usd', 'days': days, 'interval': 'hourly'}
+    params = {'vs_currency': 'usd', 'days': days}
     headers = {'x-cg-pro-api-key': API_KEY}
 
     response = requests.get(url, params=params, headers=headers)
     if response.status_code != 200:
+        print(f"Erro na API: {response.status_code}")
         return pd.DataFrame()
 
     data = response.json()
+    if 'prices' not in data or len(data['prices']) == 0:
+        print(f"Sem dados para {coin_id}")
+        return pd.DataFrame()
+
     df = pd.DataFrame(data['prices'], columns=['Time', 'Price'])
     df['Time'] = pd.to_datetime(df['Time'], unit='ms')
     return df
 
 
+# 🧠 Função para cálculo de indicadores técnicos
 def calculate_indicators(df, sma_window, ema_window, rsi_window, boll_window):
+    if df.empty or 'Price' not in df.columns:
+        print("DataFrame vazio ou sem coluna 'Price'.")
+        return df
+
     df = df.copy()
     df['SMA'] = df['Price'].rolling(window=sma_window).mean()
     df['EMA'] = df['Price'].ewm(span=ema_window, adjust=False).mean()
 
-    # RSI
     delta = df['Price'].diff()
     up = delta.clip(lower=0)
     down = -1 * delta.clip(upper=0)
@@ -62,7 +69,6 @@ def calculate_indicators(df, sma_window, ema_window, rsi_window, boll_window):
     rs = ma_up / ma_down
     df['RSI'] = 100 - (100 / (1 + rs))
 
-    # Bollinger Bands
     df['STD'] = df['Price'].rolling(window=boll_window).std()
     df['Upper'] = df['SMA'] + (df['STD'] * 2)
     df['Lower'] = df['SMA'] - (df['STD'] * 2)
@@ -70,7 +76,11 @@ def calculate_indicators(df, sma_window, ema_window, rsi_window, boll_window):
     return df
 
 
+# 🏦 Backtesting simples baseado em cruzamento de médias
 def backtest_strategy(df):
+    if df.empty:
+        return df, {'Total Return': 0, 'Trades': 0, 'Wins': 0, 'Losses': 0}
+
     df = df.copy()
     df['SMA5'] = df['Price'].rolling(window=5).mean()
     df['SMA15'] = df['Price'].rolling(window=15).mean()
@@ -85,7 +95,7 @@ def backtest_strategy(df):
     df['Cumulative'] = (1 + df['Strategy'].fillna(0)).cumprod()
 
     trades = df['Signal'].abs().sum() / 2
-    total_return = df['Cumulative'].iloc[-1] - 1
+    total_return = df['Cumulative'].iloc[-1] - 1 if not df['Cumulative'].empty else 0
     win_trades = (df['Strategy'] > 0).sum()
     lose_trades = (df['Strategy'] < 0).sum()
 
@@ -96,19 +106,21 @@ def backtest_strategy(df):
         'Losses': int(lose_trades)
     }
 
-# ================== Layout ==================
+
+# ======================= Layout ========================
 
 app.layout = html.Div([
     html.H1('🪙 Crypto Dashboard', style={'textAlign': 'center'}),
 
     html.Div([
         html.Div([
-            html.H3('Configurações Moeda 1'),
+            html.H4('Moeda 1'),
             dcc.Dropdown(
                 id='coin1',
                 options=[{'label': v, 'value': k} for k, v in coins.items()],
                 value='bitcoin'
             ),
+            html.H4('Período'),
             dcc.Dropdown(
                 id='period1',
                 options=[{'label': v, 'value': k} for k, v in period_options.items()],
@@ -117,12 +129,13 @@ app.layout = html.Div([
         ], style={'width': '48%', 'display': 'inline-block'}),
 
         html.Div([
-            html.H3('Configurações Moeda 2'),
+            html.H4('Moeda 2'),
             dcc.Dropdown(
                 id='coin2',
                 options=[{'label': v, 'value': k} for k, v in coins.items()],
                 value='ethereum'
             ),
+            html.H4('Período'),
             dcc.Dropdown(
                 id='period2',
                 options=[{'label': v, 'value': k} for k, v in period_options.items()],
@@ -153,13 +166,13 @@ app.layout = html.Div([
 
     dcc.Interval(
         id='interval-component',
-        interval=60*1000,  # 1 minuto
+        interval=60*1000,  # Atualiza a cada minuto
         n_intervals=0
     )
 ])
 
 
-# ================== Callbacks ==================
+# ======================= Callback ========================
 
 @app.callback(
     [Output('graph1', 'figure'),
@@ -183,44 +196,29 @@ def update_graph(coin1, period1, coin2, period2, chart_type, n):
     df1_bt, stats1 = backtest_strategy(df1)
     df2_bt, stats2 = backtest_strategy(df2)
 
-    # Gráfico 1
-    fig1 = go.Figure()
-    if chart_type == 'line':
-        fig1.add_trace(go.Scatter(x=df1['Time'], y=df1['Price'], name='Preço'))
-        fig1.add_trace(go.Scatter(x=df1['Time'], y=df1['Upper'], name='Bollinger Upper'))
-        fig1.add_trace(go.Scatter(x=df1['Time'], y=df1['Lower'], name='Bollinger Lower'))
-    else:
-        fig1.add_trace(go.Candlestick(
-            x=df1['Time'],
-            open=df1['Price'],
-            high=df1['Price'],
-            low=df1['Price'],
-            close=df1['Price'],
-            name='Candlestick'
-        ))
+    def build_figure(df, coin_name):
+        fig = go.Figure()
+        if chart_type == 'line':
+            fig.add_trace(go.Scatter(x=df['Time'], y=df['Price'], name='Preço'))
+            fig.add_trace(go.Scatter(x=df['Time'], y=df['Upper'], name='Bollinger Upper'))
+            fig.add_trace(go.Scatter(x=df['Time'], y=df['Lower'], name='Bollinger Lower'))
+        else:
+            fig.add_trace(go.Candlestick(
+                x=df['Time'],
+                open=df['Price'],
+                high=df['Price'],
+                low=df['Price'],
+                close=df['Price'],
+                name='Candlestick'
+            ))
+        fig.update_layout(title=coin_name)
+        return fig
 
-    fig1.update_layout(title=coins[coin1])
-
-    # Gráfico 2
-    fig2 = go.Figure()
-    if chart_type == 'line':
-        fig2.add_trace(go.Scatter(x=df2['Time'], y=df2['Price'], name='Preço'))
-        fig2.add_trace(go.Scatter(x=df2['Time'], y=df2['Upper'], name='Bollinger Upper'))
-        fig2.add_trace(go.Scatter(x=df2['Time'], y=df2['Lower'], name='Bollinger Lower'))
-    else:
-        fig2.add_trace(go.Candlestick(
-            x=df2['Time'],
-            open=df2['Price'],
-            high=df2['Price'],
-            low=df2['Price'],
-            close=df2['Price'],
-            name='Candlestick'
-        ))
-
-    fig2.update_layout(title=coins[coin2])
+    fig1 = build_figure(df1, coins[coin1])
+    fig2 = build_figure(df2, coins[coin2])
 
     backtest_output = html.Div([
-        html.H3('Backtesting Resultados'),
+        html.H3('Backtesting Resultado'),
         html.P(f"{coins[coin1]} - Return: {stats1['Total Return']}%, Trades: {stats1['Trades']}, Wins: {stats1['Wins']}, Losses: {stats1['Losses']}"),
         html.P(f"{coins[coin2]} - Return: {stats2['Total Return']}%, Trades: {stats2['Trades']}, Wins: {stats2['Wins']}, Losses: {stats2['Losses']}")
     ])
